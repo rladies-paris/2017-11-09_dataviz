@@ -3,14 +3,20 @@ What's so great about Ggplot2?
 Sarah Hosking for \#R-Ladies Paris
 9 November 2017
 
-**Preface**
+``` r
+# set variable to conditionally hide some non-ggplot code chunks. 
+# used with `echo=` chunk option.
+show_all = TRUE
+```
 
-_This file was generated from an RMD file. It contains more written explanations than the original presentation, so it's easier to follow for non-attendees._
-
-_To keep the focus on `Ggplot2` code, I have hidden the data munging code from the presentation._
-
-_To see ALL code used in this presentation, see the source files on github:_ 
-https://github.com/limegimlet/rladies_dataviz_nov2017.git.
+``` r
+knitr::opts_chunk$set(echo = TRUE, 
+                      include = TRUE,
+                      message = FALSE,
+                      warning = FALSE)
+library(tidyverse)
+theme_set(theme_bw())
+```
 
 It's all about *layers*
 =======================
@@ -58,7 +64,7 @@ My audience is often Parisian. The air quality data is available for public down
 
 Moreoever, when I was really getting into Ggplot2 in late 2016, European headlines were dominated by stories of extreme pollution spikes from fine particulate matter.
 
-And since I live between 2 major arterial roads in city center, my question was "Just how bad is it?" Also, being a runner and cyclist, I wanted to see if there was clearly a best time of day to exercise outdoors.
+And since I live between 2 major arterial roads in the city center, my question was "Just how bad is it?" Also, being a runner and cyclist, I wanted to see if there was clearly a best time of day to exercise outdoors.
 
 About the data set
 ==================
@@ -69,6 +75,23 @@ About the data set
 -   readings collected hourly, 24/7
 -   from July 21 2011 to Oct 31 2017
 -   measuring location: Paris Hôtel de Ville
+
+``` r
+airparif <- read_rds("airparif_oct2017.rds")
+str(airparif)
+```
+
+    ## 'data.frame':    55080 obs. of  10 variables:
+    ##  $ date : Date, format: "2011-07-21" "2011-07-21" ...
+    ##  $ year : Ord.factor w/ 7 levels "2011"<"2012"<..: 1 1 1 1 1 1 1 1 1 1 ...
+    ##  $ month: Ord.factor w/ 12 levels "01"<"02"<"03"<..: 7 7 7 7 7 7 7 7 7 7 ...
+    ##  $ day  : Ord.factor w/ 31 levels "01"<"02"<"03"<..: 21 21 21 21 21 21 21 21 21 21 ...
+    ##  $ hour : int  1 2 3 4 5 6 7 8 9 10 ...
+    ##  $ PM10 : num  7 6 7 7 10 10 11 15 17 19 ...
+    ##  $ PM25 : num  NA NA NA NA NA NA NA NA NA NA ...
+    ##  $ NO2  : num  12 10 10 14 30 36 32 39 36 39 ...
+    ##  $ O3   : num  NA NA NA NA NA NA NA NA NA NA ...
+    ##  $ CO   : num  NA NA NA NA NA NA NA NA NA NA ...
 
 ``` r
 nrow(airparif)
@@ -221,10 +244,42 @@ Now, imagine we had 20 pollutants in our data frame.
 
 Instead, use *tidy* data.
 
+``` r
+# make tidy
+airparif.tidy <- airparif %>% 
+  gather(PM10, PM25, NO2, O3, CO, 
+         key = 'pollutant', value = 'value', 
+         na.rm = TRUE) %>% 
+  group_by(date, hour, pollutant) %>% 
+  arrange(date)
+
+airparif.tidy <- data.frame(airparif.tidy)
+str(airparif.tidy)
+```
+
+    ## 'data.frame':    254769 obs. of  7 variables:
+    ##  $ date     : Date, format: "2011-07-21" "2011-07-21" ...
+    ##  $ year     : Ord.factor w/ 7 levels "2011"<"2012"<..: 1 1 1 1 1 1 1 1 1 1 ...
+    ##  $ month    : Ord.factor w/ 12 levels "01"<"02"<"03"<..: 7 7 7 7 7 7 7 7 7 7 ...
+    ##  $ day      : Ord.factor w/ 31 levels "01"<"02"<"03"<..: 21 21 21 21 21 21 21 21 21 21 ...
+    ##  $ hour     : int  1 2 3 4 5 6 7 8 9 10 ...
+    ##  $ pollutant: chr  "PM10" "PM10" "PM10" "PM10" ...
+    ##  $ value    : num  7 6 7 7 10 10 11 15 17 19 ...
+
 Untidy vs Tidy
 ==============
 
 *Not tidy*
+
+``` r
+dim(airparif)
+```
+
+    ## [1] 55080    10
+
+``` r
+head(airparif)
+```
 
     ##         date year month day hour PM10 PM25 NO2 O3 CO
     ## 2 2011-07-21 2011    07  21    1    7   NA  12 NA NA
@@ -236,17 +291,41 @@ Untidy vs Tidy
 
 *Tidy*
 
-    ##         date year month day hour pollutant value
-    ## 1 2011-07-21 2011    07  21    1      PM10     7
-    ## 2 2011-07-21 2011    07  21    2      PM10     6
-    ## 3 2011-07-21 2011    07  21    3      PM10     7
-    ## 4 2011-07-21 2011    07  21    4      PM10     7
-    ## 5 2011-07-21 2011    07  21    5      PM10    10
-    ## 6 2011-07-21 2011    07  21    6      PM10    10
-
 -   observations in rows
 -   variables are columns
 -   values in cells
+
+``` r
+dim(airparif.tidy)
+```
+
+    ## [1] 254769      7
+
+``` r
+head(airparif.tidy, 20)
+```
+
+    ##          date year month day hour pollutant value
+    ## 1  2011-07-21 2011    07  21    1      PM10     7
+    ## 2  2011-07-21 2011    07  21    2      PM10     6
+    ## 3  2011-07-21 2011    07  21    3      PM10     7
+    ## 4  2011-07-21 2011    07  21    4      PM10     7
+    ## 5  2011-07-21 2011    07  21    5      PM10    10
+    ## 6  2011-07-21 2011    07  21    6      PM10    10
+    ## 7  2011-07-21 2011    07  21    7      PM10    11
+    ## 8  2011-07-21 2011    07  21    8      PM10    15
+    ## 9  2011-07-21 2011    07  21    9      PM10    17
+    ## 10 2011-07-21 2011    07  21   10      PM10    19
+    ## 11 2011-07-21 2011    07  21   11      PM10    19
+    ## 12 2011-07-21 2011    07  21   12      PM10    16
+    ## 13 2011-07-21 2011    07  21   13      PM10    15
+    ## 14 2011-07-21 2011    07  21   14      PM10    17
+    ## 15 2011-07-21 2011    07  21   15      PM10    16
+    ## 16 2011-07-21 2011    07  21   16      PM10    19
+    ## 17 2011-07-21 2011    07  21   17      PM10    20
+    ## 18 2011-07-21 2011    07  21   18      PM10    24
+    ## 19 2011-07-21 2011    07  21   19      PM10    27
+    ## 20 2011-07-21 2011    07  21   20      PM10    31
 
 Plot tidy data & facet
 ======================
@@ -309,7 +388,7 @@ p + geom_histogram()
 ![](rl_dataviz_pres_files/figure-markdown_github/plot%20all%20pollutants-2.png)
 
 ``` r
-# add them together
+# add facet layer
 p + 
   geom_histogram() +
   fw
@@ -379,6 +458,33 @@ To answer that question, I'd like to add horizontal lines showing the low-med-hi
 ![](images/citeair-grille-calcul.png)
 
 ``` r
+# first, define thresholds for diff pollutants
+PM10 <- c(25,50,90,180)
+PM25 <- c(15,30,55,110)
+NO2 <- c(50,100,200,400)
+O3 <- c(60,120,180,240)
+CO <- c(5000,7500, 10000, 20000)
+
+# create df of levels
+levels_h.df <- as.data.frame(cbind(PM10, PM25, NO2, O3, CO))
+rownames(levels_h.df) <- c('low', 'medium', 'high', 'very high')
+
+# set rownames as columns
+library(data.table)
+setDT(levels_h.df, keep.rownames = TRUE)
+
+# rename rn column
+colnames(levels_h.df)[1] <- "level"
+
+# put in long format
+levels_h.long <- levels_h.df %>%
+  gather('pollutant', 'value', 2:6)
+
+# change col order
+levels_h.long <- levels_h.long[, c(2,1,3)]
+```
+
+``` r
 # df of 1-hr threshold values for each pollutant
 head(levels_h.long, 10)
 ```
@@ -427,6 +533,13 @@ How did pollution fluctuate throughout the day?
 
 To answer this, let's make a faceted spaghetti plot, with a "strand" for each day of the Dec 2016.
 
+``` r
+dec2016 <- airparif.tidy %>%
+  filter(year == 2016 & month == 12)
+
+dec2016 <- data.frame(dec2016)
+```
+
 Spaghetti line plot
 ===================
 
@@ -439,7 +552,7 @@ p.dec16 +
   fw
 ```
 
-![](rl_dataviz_pres_files/figure-markdown_github/spaghetti%20plot-1.png)
+![](rl_dataviz_pres_files/figure-markdown_github/failed%20spaghetti%20plot-1.png)
 
 This is NOT what I was after.
 
@@ -462,7 +575,7 @@ p.dec16 <- p.dec16 +
 p.dec16 + fw
 ```
 
-![](rl_dataviz_pres_files/figure-markdown_github/unnamed-chunk-9-1.png)
+![](rl_dataviz_pres_files/figure-markdown_github/spaghetti%20plot-1.png)
 
 That's more like it!
 
@@ -508,7 +621,7 @@ p.dec16 +
   fw
 ```
 
-![](rl_dataviz_pres_files/figure-markdown_github/plot%20max%20PM10%20day%20for%20all%20pollutants-1.png)
+![](rl_dataviz_pres_files/figure-markdown_github/highlighted%20spaghetti-1.png)
 
 ``` r
 # add context: bring back the threshold lines
@@ -518,7 +631,7 @@ p.dec16 +
   hl
 ```
 
-![](rl_dataviz_pres_files/figure-markdown_github/plot%20max%20PM10%20day%20for%20all%20pollutants-2.png)
+![](rl_dataviz_pres_files/figure-markdown_github/highlighted%20spaghetti-2.png)
 
 Analysis conclusion & follow up
 ===============================
