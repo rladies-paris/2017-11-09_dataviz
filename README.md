@@ -1,4 +1,4 @@
-# 2017-11-09_dataviz
+# Data Visualization in R: from exploration to presentation
 
 This repo stores the presentations from the Nov 9 2017 meetup at Critéo. 
 
